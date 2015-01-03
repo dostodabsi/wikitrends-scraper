@@ -1,14 +1,15 @@
 var fs = require('fs');
 var _ = require('lodash');
+var async = require('async');
 var cheerio = require('cheerio');
 var request = require('request');
 
 
-var scrape = function(year, top, cb) {
+var wikiscrape = function(year, top, cb) {
 
   // check inputs
   if (!_.contains([10, 25, 100], top)) {
-    console.warn('top must either be 10, 25 or 100!');
+    console.warn('top must either be an *integer* of value 10, 25 or 100!');
     return;
   }
 
@@ -28,13 +29,12 @@ var scrape = function(year, top, cb) {
 
   request.get(opts, function(err, res, body) {
       if (err) return cb(err);
-
       var $ = cheerio.load(body);
+
+      // functions for _.map
       var parse = function(arr) {
-        /*
-         * from ['1. Online Shopping', '34 897 548'] to
-         * { 'term' 'Online Shopping', 'count': 34897548 }
-         */
+        // ['1. Online Shopping', '34 897 548'] =>
+        // {'term': 'Online Shopping', 'count': 34897548 }
         return {
           'term': _.first(arr).substr(3).trim(),
           'count': _.parseInt(_.last(arr).replace(/\s+/g, ''), 10)
@@ -47,6 +47,7 @@ var scrape = function(year, top, cb) {
           return $(child).text();
         });
       };
+      //
       
       // need different selectors, since top25 / top100 is only from 11 / 26 to 25 / 100 ...
       var sel;
@@ -57,20 +58,29 @@ var scrape = function(year, top, cb) {
       if (top == 100)
         sel = 'tbody > tr[class="top10"], tbody > tr[class="top25"], tbody > tr[class="top100"]';
 
-      var languages = _.map($('h2 > a'), getname);
-      var data = _.map($(sel), getdata);
+      // ES6 arrow functions will make that sooooo much prettier
+      var fn_lang = function(cb) { cb(null, _.map($('h2 > a'), getname)); };
+      var fn_data = function(cb) { cb(null, _.map($(sel), getdata)); };
 
-      // construct the JSON representation
-      var trends = _.reduce(languages, function(base, lang, i) {
-        base[lang] = _.reduce(_.range(1, top + 1), function(b, place) {
-          b[place] = parse(data[place - 1]);
-          return b;
-        }, {});
+      // run the selections in parallel ~ slight speed increase, on average
+      async.parallel([fn_lang, fn_data], function(err, results) {
+          if (err) return cb(err);
 
-        return base;
-      }, {});
+          var data = _.last(results);
+          var languages = _.first(results);
 
-      return cb(null, trends, year, top);
+          // construct the JSON representation
+          var trends = _.reduce(languages, function(base, lang, i) {
+            base[lang] = _.reduce(_.range(1, top + 1), function(b, place) {
+              b[place] = parse(data[place - 1]);
+              return b;
+            }, {});
+
+            return base;
+          }, {});
+
+          return cb(null, trends, year, top);
+        });
     });
 };
 
@@ -84,4 +94,4 @@ var write = function(err, data, year, top) {
   });
 };
 
-scrape(2014, 100, write); // write the top100 of year 2014 to disk
+wikiscrape(2014, 100, write); // write the top100 of year 2014 to disk

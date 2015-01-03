@@ -9,6 +9,7 @@
   "author": "Fabian Dablander",
   "license": "MIT",
   "dependencies": {
+    "async": "^0.9.0",
     "cheerio": "^0.18.0",
     "lodash": "^2.4.1",
     "request": "^2.51.0"
