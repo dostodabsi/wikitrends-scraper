@@ -68,11 +68,13 @@ var wikiscrape = function(year, top, cb) {
 
           var data = _.last(results);
           var languages = _.first(results);
+          console.log(data)
 
           // construct the JSON representation
           var trends = _.reduce(languages, function(base, lang, i) {
+
             base[lang] = _.reduce(_.range(1, top + 1), function(b, place) {
-              b[place] = parse(data[place - 1]);
+              b[place] = parse(data[place - 1 + i * top]);
               return b;
             }, {});
 
