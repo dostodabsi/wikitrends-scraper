@@ -11,4 +11,5 @@ node index.js
 ```
 
 You can specify the year (>= 2012) and scrape either the top10, top25 or top100. Per default, it will download the top100 sites from the
-year 2014 to *wikitrends-2014-100.json* in the current directory. You can easily adjust that, though.
+year 2014 to *wikitrends-2014-100.json* in the current directory. You can easily adjust that, though. Or check out [this](https://gist.github.com/dostodabsi/9d26ea30d1b3c18e9699)
+R version.
